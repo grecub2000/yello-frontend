@@ -10,39 +10,51 @@ import {
 	Text,
 	Divider,
 } from "@chakra-ui/react";
-import React, { useContext } from "react";
+import React, { useContext, useState } from "react";
 import { useHistory } from "react-router-dom";
 import { UserContext } from "../../App";
 import * as icons from "@chakra-ui/icons";
+import { useKeycloak } from "@react-keycloak/web";
+import jwt from 'jwt-decode';
+
+
 export const Navbar = () => {
+	const defaultPP = "https://st4.depositphotos.com/1000507/24488/v/600/depositphotos_244889634-stock-illustration-user-profile-picture-isolate-background.jpg"
 	const history = useHistory();
-
+	const { keycloak, initialized } = useKeycloak();
 	const context = useContext(UserContext);
-
+	let userInfo = JSON.parse(localStorage.getItem("userInfo"));
+	const [isLoading, setIsLoading] = useState(false);
+	// console.log("from navbar");
+	// console.log("navb", keycloak.authenticated);
 	const goHome = () => {
 		history.push("/");
 	};
-
-    const goLogin = () => {
-		history.push("/login");
+    const goLogin = async () => {
+		// history.push("/login");
+		keycloak.login({redirectUri: "http://localhost:3000/login"});
 	};
 
 
     const goRegister = () => {
-		history.push("/register");
+		keycloak.register({redirectUri: "http://localhost:3000/login"});
 	};
 
     const goProfile = () => {
-		history.push("/user/" + context.userInfo.userId);
+		// let username = jwt(keycloak.idToken).preferred_username;
+		history.push("/profile");
 	};
 
     const goProjects = () => {
-		{context.jwt!="" && context.jwt!=null ? (history.push("/projects")): history.push("/login")}
+		{keycloak.authenticated ? (history.push("/projects")): history.push("/login")}
     };
 
 	const handleLogout = () => {
-		context?.logOut();
 		history.push("/");
+		localStorage.removeItem("userInfo");
+		localStorage.removeItem("Registered");
+		keycloak.logout();
+		
 	};
 
 
@@ -54,6 +66,7 @@ export const Navbar = () => {
 			justifyContent="space-between"
             backgroundColor = "yellow"
 			alignItems="center">
+				{/* {console.log(context)} */}
 			<Flex>
 				<Button variant="link" mx={2} onClick={goHome}>
 					<Text
@@ -74,8 +87,7 @@ export const Navbar = () => {
 					</Text>
 				</Button>
 			</Flex>
-            {context.jwt!="" && context.jwt!=null ? (
-
+			{!!keycloak.authenticated && (
 			<Menu>
                 
 
@@ -85,47 +97,62 @@ export const Navbar = () => {
 
 				<MenuList>
 					<Flex width="100%" alignItems="center" direction="column">
+					{/* {console.log(userInfo.username)} */}
 
-                    <Avatar
-							size="lg"
-							src={
-								context?.userInfo?.profilePicture
-							}
-						/>
+					{userInfo?.profilePicture != defaultPP ? (
+						<Avatar
+						size="lg"
+						name={userInfo?.firstName + " " + userInfo?.lastName}
+						src={
+							userInfo?.profilePicture
+						}
+						// src='https://bit.ly/broken-link'
+						// src='https://img.a.transfermarkt.technology/portrait/big/28003-1631171950.jpg?lm=1'
+						> 
+						</Avatar>
+						):
+						<Avatar
+						size="lg"
+						name={userInfo?.firstName + " " + userInfo?.lastName}
+						> 
+						</Avatar>
+						}      
 						<Text fontWeight="bold" fontSize="18px" my={3}>
 							{
-								context?.userInfo?.userName
+								userInfo?.username
 							}
 						</Text>
 
 
 						<Divider />
-                        
-                        <MenuItem>
-							<Text
-								fontSize="18px"
-								width="100%"
-								display="flex"
-								justifyContent="center"
-								onClick={goProfile}>
-								Profile
-							</Text>
-						</MenuItem>
-						<MenuItem>
-							<Text
-								fontSize="18px"
-								width="100%"
-								display="flex"
-								justifyContent="center"
-								onClick={handleLogout}>
-								Log out
-							</Text>
-						</MenuItem>
-                        
+
+							<MenuItem>
+								<Text
+									fontSize="18px"
+									width="100%"
+									display="flex"
+									justifyContent="center"
+									onClick={goProfile}>
+									Profile
+								</Text>
+							</MenuItem>
+							<MenuItem>
+								<Text
+									fontSize="18px"
+									width="100%"
+									display="flex"
+									justifyContent="center"
+									onClick={handleLogout}>
+									Logout
+								</Text>
+							</MenuItem>       
+
 					</Flex>
 				</MenuList>
 			</Menu>
-            ):
+			)}
+
+			{!keycloak.authenticated && (
             <Flex>
             <Button variant="link" mx={2} onClick={goLogin}>
                 <Text
@@ -134,7 +161,7 @@ export const Navbar = () => {
                     color="black"
                     alignSelf="center">
                     Login
-                </Text>
+                </Text>                                
             </Button>
             <Button variant="link" mx={2} onClick={goRegister}>
                 <Text
@@ -146,8 +173,7 @@ export const Navbar = () => {
                 </Text>
             </Button>
             </Flex>
-
-            }
+			)}
 
 		</Flex>
 	);

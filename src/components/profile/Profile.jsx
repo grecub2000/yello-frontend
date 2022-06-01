@@ -15,6 +15,7 @@ import axios from "axios";
 import React, { useContext, useState, useEffect } from "react";
 import { UserContext } from "../../App.js";
 import { useHistory, useParams } from "react-router-dom";
+import { useKeycloak } from "@react-keycloak/web";
 
 
 
@@ -24,27 +25,35 @@ export const ProfilePage = () => {
     const uId = useParams().id;
     const history = useHistory();
     const defaultPP = "https://st4.depositphotos.com/1000507/24488/v/600/depositphotos_244889634-stock-illustration-user-profile-picture-isolate-background.jpg"
+    const { keycloak, initialized } = useKeycloak();
 
-    // const [details, setDetails] = useState();
+    const [details, setDetails] = useState();
 
 
 
     const getUserData = async () => {
-        let url = "http://localhost:5000/api/users/" + uId
+
+        if(localStorage.getItem("userInfo")){
+            setUserData(JSON.parse(localStorage.getItem("userInfo")));
+            return;
+        }
+        let url = "http://localhost:5000/api/user/check-user"
 
         
         const config = {
             headers: {
               "Content-Type": "application/json",
               "Access-Control-Allow-Origin": "*",
+              "Authorization": "Bearer " + keycloak.idToken
             },
         };
 
+        console.log(config);
         const res = await axios.get(url, config);
         // let token = res.data.accessToken;
         // console.log(token)
-        console.log(res)
-        console.log("data",res.data)
+        // console.log(res)
+        // console.log("data",res.data)
         if (res.status != 200){
             history.push("/");
             history.push("/404")
@@ -57,12 +66,20 @@ export const ProfilePage = () => {
             profilePicture: res.data.profilePicture
         }
         setUserData(user);
-        
+        // console.log(user);
+        localStorage.setItem("userInfo", JSON.stringify(user));
+        // context.setUserInfo(JSON.parse(user));
+        return;
+        // // console.log(localStorage.getItem("userInfo"));
+        // var user = localStorage.getItem("userInfo");
+        // setUserData(user);
+        // // console.log(user);
+        // return user;
     }
 
     useEffect(() => {
         getUserData()
-        // console.log("userdatarff", userData)
+        // console.log("userdatarff cont", context)
     },[]);
 
     const goEdit = () => {
@@ -96,7 +113,7 @@ export const ProfilePage = () => {
                 backgroundColor="#3B3806"
                 margin= "10px"
               >
-                {console.log("userdata", userData)}
+                {/* {console.log("userdata", userData)} */}
                 {/* <Text color="yellow">
                     idul  userului {context?.userInfo?.userId} {uId} 
                 </Text> */}
